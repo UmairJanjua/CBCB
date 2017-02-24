@@ -10,13 +10,20 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 
 class SoapRequestTest {
 
 
-    public static void getResponse(String xml) throws IOException, SAXException, ParserConfigurationException {
+    public static String getResponse(String xml) throws IOException, SAXException, ParserConfigurationException {
 
         DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         InputSource src = new InputSource();
@@ -24,7 +31,23 @@ class SoapRequestTest {
         Document doc = builder.parse(src);
         String response = doc.getElementsByTagName("sResponse").item(0).getTextContent();
         System.out.println("response: " + response);
+        return response;
+    }
 
+    public static String prettyFormat(String input) {
+        try {
+            Source xmlInput = new StreamSource(new StringReader(input));
+            StringWriter stringWriter = new StringWriter();
+            StreamResult xmlOutput = new StreamResult(stringWriter);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            transformerFactory.setAttribute("indent-number", 2);
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.transform(xmlInput, xmlOutput);
+            return xmlOutput.getWriter().toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String payLoad(){
@@ -65,7 +88,7 @@ class SoapRequestTest {
                 "\t\t\t\t<RoleCode>A</RoleCode>\n" +
                 "\t\t\t\t<Individual>\n" +
                 "\t\t\t\t\t<Name>\n" +
-                "\t\t\t\t\t\t<PresentSurname-TradeName>NEKONEČNÁ</PresentSurname-TradeName>\n" +
+                "\t\t\t\t\t\t<PresentSurname-TradeName>NEKONECNA</PresentSurname-TradeName>\n" +
                 "\t\t\t\t\t\t<PresentName-OwnerPresentName>JARMILA</PresentName-OwnerPresentName>\n" +
                 "\t\t\t\t\t\t<NameForcing>0</NameForcing>\n" +
                 "\t\t\t\t\t\t<PresentSurnameForcing>0</PresentSurnameForcing>\n" +
@@ -128,7 +151,6 @@ class SoapRequestTest {
                 "\t\t\t<DetailOnAdditionalPersonalRequestFlag>1</DetailOnAdditionalPersonalRequestFlag>\n" +
                 "\t\t</RI_REQ>]]>";
 
-
         return xml;
     }
 
@@ -159,15 +181,12 @@ class SoapRequestTest {
 
         CloseableHttpClient httpClient = new CBCBHttpClient().create();
 
-
         try {
             HttpResponse response = httpClient.execute(httpPost);
-//            System.out.println("StatusCode: " + response.getStatusLine().getStatusCode());
-//            System.out.println("Response: " + response.toString());
+            System.out.println("StatusCode: " + response.getStatusLine().getStatusCode());
             String finalResponse = EntityUtils.toString(response.getEntity());
-//            System.out.println("Entity: " + finalResponse);
             System.out.println("=====================================================");
-            getResponse(finalResponse);
+            System.out.println(prettyFormat(getResponse(finalResponse)));
 
         } finally {
             httpClient.close();
